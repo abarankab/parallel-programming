@@ -5,6 +5,7 @@
 #include <random>
 
 #include "benchmark.h"
+#include "defs.h"
 #include "timer.h"
 
 std::vector<double> init_data() {
@@ -31,8 +32,8 @@ int main() {
     const size_t NUM_CYCLES = 1'000;
     const size_t CYCLE_STOP = NUM_CYCLES / 10;
 
-    double par_time = 0;
-    double seq_time = 0;
+    ull par_time = 0;
+    ull seq_time = 0;
 
     std::cout << "Start\n";
 
@@ -41,17 +42,17 @@ int main() {
         escape(&data);
 
         {
-            double start_time = currentSeconds();
+            ull start_time = currentSeconds();
             double result = par_sum(data);
-            double end_time = currentSeconds();
+            ull end_time = currentSeconds();
             escape(&result);
             par_time += (end_time - start_time);
         }
 
         { 
-            double start_time = currentSeconds();
+            ull start_time = currentSeconds();
             double result = seq_sum(data);
-            double end_time = currentSeconds();
+            ull end_time = currentSeconds();
             escape(&result);
             seq_time += (end_time - start_time);
         }
