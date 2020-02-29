@@ -3,65 +3,87 @@
 #include <vector>
 #include <omp.h>
 #include <random>
+#include <assert.h>
 
 #include "benchmark.h"
 #include "defs.h"
 #include "timer.h"
 
-std::vector<double> init_data() {
-    std::vector<double> data(rand() % 10'000'000);
-    for (double& x : data) {
-        x = rand();
+std::vector<ull> init_data() {
+    const ull MAX_SIZE = 100'000'000;
+    const ull MAX_ELEMENT = 1'000'000;
+
+    std::vector<ull> data(rand() % MAX_SIZE);
+    for (ull& x : data) {
+        x = rand() % MAX_ELEMENT;
     }
     return data;
 }
 
-double par_sum(std::vector<double>& v) {
-    double res = 0;
-    for (auto x : v) res += x;
+ull par_sum(std::vector<ull>& v) {
+    omp_set_num_threads(omp_get_max_threads());
+
+    ull res = 0;
+    size_t i = 0;
+
+    #pragma omp parallel for reduction(+:res)
+    for (i = 0; i < v.size(); ++i) {
+        res += v[i];
+    }
     return res;
 }
 
-double seq_sum(std::vector<double>& v) {
-    double res = 0;
+ull seq_sum(std::vector<ull>& v) {
+    ull res = 0;
     for (auto x : v) res += x;
     return res;
 }
 
 int main() {
-    const size_t NUM_CYCLES = 1'000;
+    const size_t NUM_CYCLES = 1'00;
     const size_t CYCLE_STOP = NUM_CYCLES / 10;
 
     ull par_time = 0;
     ull seq_time = 0;
 
-    std::cout << "Start\n";
+    std::cout << "Start\n" << "Threads: " << omp_get_max_threads() << "\n\n";
 
     for (size_t cycle = 1; cycle <= NUM_CYCLES; ++cycle) {
-        std::vector<double> data = init_data();
+        std::vector<ull> data = init_data();
         escape(&data);
+
+        ull par_result, seq_result;
 
         {
             ull start_time = currentSeconds();
-            double result = par_sum(data);
+            par_result = par_sum(data);
             ull end_time = currentSeconds();
-            escape(&result);
             par_time += (end_time - start_time);
         }
 
         { 
             ull start_time = currentSeconds();
-            double result = seq_sum(data);
+            seq_result = seq_sum(data);
             ull end_time = currentSeconds();
-            escape(&result);
             seq_time += (end_time - start_time);
+        }
+
+        escape(&par_result);
+        escape(&seq_result);
+
+        if (par_result != seq_result) {
+            std::cerr << std::fixed
+                      << "Parallel result is not equal to sequential result:\n"
+                      << "Parallel: " << par_result << "\n"
+                      << "Sequential: " << seq_result << "\n";
+            exit(-1);
         }
 
         if (cycle % CYCLE_STOP == 0) {
             std::cout << std::fixed
                       << "Step " << cycle / CYCLE_STOP << " of 10:\n"
                       << "Parallel time: " << par_time / cycle << " ns\n"
-                      << "Sequential time: " << seq_time / cycle << " ns\n";
+                      << "Sequential time: " << seq_time / cycle << " ns\n\n";
         }
     }
 
