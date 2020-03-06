@@ -1,10 +1,26 @@
+/**
+ * This test relies on the same interface that dsu.h gives
+ * Class name should be DSU
+ * 
+ * If you want to check your own implementation of a parallel dsu,
+ * feel free to use this one, just modify the include path
+ * 
+ * If you add no_correctness, no_exceptions or no_performance these
+ * tests will be skipped
+ * 
+ * It checks overall correctness, exceptions and performance
+ */
+
 #include <algorithm>
 #include <iostream>
 #include <omp.h>
 #include <pair>
 #include <random>
+#include <set>
+#include <string>
 #include <vector>
 
+/* Include your path here */
 #include "../benchmark.h"
 #include "../defs.h"
 #include "../dsu.h"
@@ -92,7 +108,7 @@ void dump_data(const u32 size,
     std::cerr << "\nComponents " << a << " " << b << "\n";
 }
 
-int main() {
+void check_correctness() {
     std::cout << std::fixed << "Checking correctness:\n";
     std::cout << "Checking small sizes:\n";
     for (u32 size = 1; size <= SMALL_SIZE; ++size) {
@@ -168,7 +184,9 @@ int main() {
         }
     }
     std::cout << "OK\n";
+}
 
+void check_exceptions() {
     std::cout << "Checking exceptions:\n";
     std::cout << "DSU():\n";
     try {
@@ -179,7 +197,6 @@ int main() {
         std::cerr << "Incorrect exception, expected std::invalid_argument\n";
         exit(-1);
     }
-
     std::cout << "find_root():\n";
     try {
         DSU d(2);
@@ -213,7 +230,9 @@ int main() {
         exit(-1);
     }
     std::cout << "OK\n";
+}
 
+void check_performance() {
     std::cout << "Checking performance on random queries:\n";
     u64 seq_constructon_time = 0;
     u64 par_constructon_time = 0;
@@ -289,5 +308,26 @@ int main() {
               << static_cast<double>(par_query_time) / PERF_NUM_STEPS << "\n"
               << "Average unite time: "
               << static_cast<double>(par_query_time) / total_queries << "\n";
+}
+
+int main(int argc, char* argv[]) {
+    std::set<std::string> arguments;
+    for (int i = 0; i < argc; ++i) arguments.insert(argv[i]);
+
+    bool no_correctness = arguments.count("no_correctness");
+    bool no_exceptions = arguments.count("no_exceptions");
+    bool no_performance = arguments.count("no_performance");
+
+    if (!no_correctness) {
+        check_correctness();
+    }
+
+    if (!no_exceptions) {
+        check_exceptions();
+    }
+
+    if (!no_performance) {
+        check_performance();
+    }
     return 0;
 }

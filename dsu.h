@@ -8,6 +8,15 @@
 #include "defs.h"
 
 /**
+ * INTERFACE:
+ * 
+ * DSU(uint32_t N) - constructs a DSU of size N
+ * uint32_t find_root(uint32_t id) - finds root node of id
+ * bool same_set(uint32_t id1, uint32_t id2) - checks if id1 and id2 are in the same set
+ * void unite(uint32_t id1, uint32_t id2) - unites sets of id1 and id2
+ * 
+ * DETAILS:
+ * 
  * Implementation was inspired by this repo
  * https://github.com/wjakob/dset/blob/master/dset.h
  * and this paper
@@ -18,16 +27,16 @@
  * Data is stored in unsigned 64 bit integers
  * The first 32 bits encode node parent
  * The last 32 bits encode node rank
- * This allows for easier compare and swap because you cannot perform it on classes
+ * This allows for easier compare and swap and should work slightly faster
  * 
  * E.g. if X is the stored value:
  * X & 0x00000000FFFFFFFF <- parent
  * X & 0xFFFFFFFF00000000 <- rank
  * 
- * To decode these values from u64 one should use get_parent and get_rank
+ * To decode these values from u64 one should use get_parent() and get_rank()
  * 
- * I also check if id is within range, this slows the code down a little bit
- * but should save you some time debugging
+ * I also check if id is within range and throw an exception otherwise,
+ * this slows the code down a little bit but should save you some time debugging
  */
 struct DSU {
     u32 size;
@@ -66,10 +75,8 @@ struct DSU {
     }
 
     /**
-     * On each step we modify encoded_value,
-     * keeping its rank and changing its parent to grandparent
-     * 
-     * Then we try to apply path heuristic using CAS
+     * On each step we try to apply path heuristic using CAS
+     * and then move closer to the root and
      * 
      * The loop breaks when a node's parent is equal to itself
      * E.g. when we find the root
@@ -102,7 +109,7 @@ struct DSU {
      * our current node is no longer the root of its set
      * 
      * In general, you should call this after synchronization,
-     * but it will still work during parallel segments
+     * It still works during parallel segments, but the results will make no sense
      */
     bool same_set(u32 id1, u32 id2) {
         check_out_of_range(id1);
