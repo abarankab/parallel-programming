@@ -1,12 +1,12 @@
 #include <iostream>
-#include <vector>
 #include <omp.h>
+#include <vector>
 
 #include "benchmark.h"
 #include "defs.h"
 #include "timer.h"
 
-const ull num_steps = 100'000'000;
+const u64 num_steps = 100'000'000;
 const long double delta = 1.0 / num_steps;
 
 // Bad version
@@ -105,21 +105,21 @@ void seq_pi() {
 }
 
 int main() {
-    ull seq_time, par_time;
+    u64 seq_time, par_time;
 
     {
-        ull start_time = currentSeconds();
+        u64 start_time = currentSeconds();
         seq_pi();
-        ull end_time = currentSeconds();
+        u64 end_time = currentSeconds();
         seq_time = end_time - start_time;
     }
 
     std::cout << "\n-----\n\n";
 
     {
-        ull start_time = currentSeconds();
+        u64 start_time = currentSeconds();
         par_pi_good();
-        ull end_time = currentSeconds();
+        u64 end_time = currentSeconds();
         par_time = end_time - start_time;
     }
 
