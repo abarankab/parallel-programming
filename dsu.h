@@ -74,13 +74,13 @@ struct DSU {
         check_out_of_range(id);
 
         while (id != get_parent(id)) {
-            u64 encoded_value = data[id];
-            u32 grandparent = get_parent(static_cast<u32>(encoded_value));
-            u64 new_value = (encoded_value & RANK_MASK) | grandparent;
+            u64 value = data[id];
+            u32 grandparent = get_parent(static_cast<u32>(value));
+            u64 new_value = (value & RANK_MASK) | grandparent;
 
             /* Path heuristic */
-            if (encoded_value != new_value) {
-                data[id].compare_exchange_weak(encoded_value, new_value);
+            if (value != new_value) {
+                data[id].compare_exchange_strong(value, new_value);
             }
 
             id = grandparent;
@@ -96,6 +96,9 @@ struct DSU {
      * Since it is a parallel structure, node roots may change during runtime
      * In order to account for this we do a while loop and repeat if
      * our current node is no longer the root of its set
+     * 
+     * In general, you should call this after synchronization,
+     * but it will still work during parallel segments
      */
     bool same_set(u32 id1, u32 id2) {
         check_out_of_range(id1);
@@ -144,14 +147,16 @@ struct DSU {
             u64 new_value = (static_cast<u64>(rank2) << BINARY_BUCKET_SIZE) | id1;
 
             /* If CAS fails we need to repeat the same step once again */
-            if (!data[id2].compare_exchange_strong(old_value, new_value)) continue;
+            if (!data[id2].compare_exchange_strong(old_value, new_value)) {
+                continue;
+            }
 
             /* Updating rank */
             if (rank1 == rank2) {
-                old_value = (static_cast<u64>(rank1) << BINARY_BUCKET_SIZE) | rank1;
-                new_value = (static_cast<u64>(rank1 + 1) << BINARY_BUCKET_SIZE) | rank1;
+                old_value = (static_cast<u64>(rank1) << BINARY_BUCKET_SIZE) | id1;
+                new_value = (static_cast<u64>(rank1 + 1) << BINARY_BUCKET_SIZE) | id1;
 
-                data[id1].compare_exchange_weak(old_value, new_value);
+                data[id1].compare_exchange_strong(old_value, new_value);
             }
 
             break;

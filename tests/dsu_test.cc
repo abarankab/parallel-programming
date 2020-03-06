@@ -48,8 +48,8 @@ u32 randint(u32 l, u32 r) {
 }
 
 const u32 NUM_STEPS = 100;
-const u32 SMALL_NUM_STEPS = 100;
-const u32 MAX_SIZE = 100'000'000;
+const u32 SMALL_NUM_STEPS = 100'000;
+const u32 MAX_SIZE = 100'000;
 const u32 SMALL_SIZE = 50;
 
 void dump_data(const u32 size,
@@ -64,24 +64,27 @@ void dump_data(const u32 size,
     for (auto p : queries) {
         std::cerr << p.first << " " << p.second << "\n";
     }
-    std::cerr << "Correct parents:\n";
+    std::cerr << "Correct roots:\n";
     for (u32 i = 0; i < size; ++i) {
         std::cerr << correct.find_root(i) << " ";
     }
-    std::cerr << "\nIncorrect parents:\n";
+    std::cerr << "\nIncorrect roots:\n";
     for (u32 i = 0; i < size; ++i) {
         std::cerr << incorrect.find_root(i) << " ";
     }
-    std::cerr << "\nComponents of " << a << " " << b << "\n";
+    std::cerr << "\nIncorrect parents:\n";
+    for (u32 i = 0; i < size; ++i) {
+        std::cerr << incorrect.get_parent(i) << " ";
+    }
+    std::cerr << "\nComponents " << a << " " << b << "\n";
 }
 
 int main() {
     std::cout << "Checking correctness:\n";
     std::cout << "Checking small sizes:\n";
-    for (u32 size = 3; size <= SMALL_SIZE; ++size) {
+    for (u32 size = 1; size <= SMALL_SIZE; ++size) {
         std::cout << "Size: " << size << "\n";
         for (u32 step = 0; step < SMALL_NUM_STEPS; ++step) {
-            std::cout << "Step: " << step + 1 << "\n";
 
             DSU to_check(size);
             SequentialDSU correct(size);
@@ -98,12 +101,10 @@ int main() {
                 correct.unite(p.first, p.second);
             }
 
-            std::cout << "Parallel started working\n";
             #pragma omp parallel for
             for (auto p : queries) {
                 to_check.unite(p.first, p.second);
             }
-            std::cout << "Parallel finished working\n";
 
             for (u32 i = 0; i < size; ++i) {
                 for (u32 j = i; j < size; ++j) {
@@ -113,7 +114,6 @@ int main() {
                     }
                 }
             }
-            std::cout << "OK\n";
         }
     }
     std::cout << "OK\n";
