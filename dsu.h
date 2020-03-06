@@ -37,6 +37,10 @@ struct DSU {
     const u64 RANK_MASK = 0xFFFFFFFF00000000ULL;
 
     DSU(u32 size) : size(size) {
+        if (size == 0) {
+            throw std::invalid_argument("DSU size cannot be zero");
+        }
+
         data = static_cast<atomic_u64*>(operator new[] (size * sizeof(atomic_u64)));
 
         #pragma omp parallel for shared(data)
