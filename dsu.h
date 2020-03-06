@@ -8,7 +8,7 @@
 #include "defs.h"
 
 /**
- * This implementation was inspired by this repo
+ * Implementation was inspired by this repo
  * https://github.com/wjakob/dset/blob/master/dset.h
  * and this paper
  * http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.8354&rep=rep1&type=pdf
@@ -138,7 +138,7 @@ struct DSU {
             u32 rank2 = get_rank(id2);
 
             /* Hanging the smaller set to the bigger one, rank heuristic */
-            if (rank1 < rank2) {
+            if (rank1 < rank2 || (rank1 == rank2 && id1 > id2)) {
                 std::swap(rank1, rank2);
                 std::swap(id1, id2);
             }

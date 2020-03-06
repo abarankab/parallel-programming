@@ -3,8 +3,8 @@
 
 #include <atomic>
 
-using u64 = unsigned long long;
-using u32 = unsigned int;
+using u64 = uint64_t;
+using u32 = uint32_t;
 using atomic_u64 = std::atomic<u64>;
 using atomic_u32 = std::atomic<u32>;
 
