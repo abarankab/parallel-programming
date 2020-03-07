@@ -9,7 +9,9 @@
 
 /**
 * INTERFACE:
-* RandomSequence(uint32_t size, uint32_t master_seed) - constructs a random sequence of given size
+* RandomSequence(uint32_t size,
+                 uint32_t master_seed,
+                 uint32_t NUM_THREADS) - constructs a random sequence of given size using NUM_THREADS
 * uint32_t operator[i] const - ith number
 */
 struct RandomSequence {

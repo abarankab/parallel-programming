@@ -6,7 +6,7 @@
 /**
  * INTERFACE:
  * 
- * PrefixSum(uint32_t size, T* begin) - constructs an array of prefix sums
+ * PrefixSum(uint32_t size, T* begin, uint32_t NUM_THREADS) - constructs an array of prefix sums using NUM_THREADS
  * T operator[i] - returns ith prefix sum = a[0] + ... + a[i]
  */
 template<typename T>

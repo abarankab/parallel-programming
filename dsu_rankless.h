@@ -10,7 +10,7 @@
 /**
  * INTERFACE:
  * 
- * DSU(uint32_t N) - constructs a DSU of size N
+ * DSU(uint32_t N, uint32_t NUM_THREADS) - constructs a DSU of size N using NUM_THREADS
  * uint32_t find_root(uint32_t id) - finds root node of id
  * bool same_set(uint32_t id1, uint32_t id2) - checks if id1 and id2 are in the same set
  * void unite(uint32_t id1, uint32_t id2) - unites sets of id1 and id2
