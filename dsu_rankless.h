@@ -1,5 +1,5 @@
-#ifndef __DSU_H
-#define __DSU_H
+#ifndef __DSU_RANKLESS_H
+#define __DSU_RANKLESS_H
 
 #include <atomic>
 #include <omp.h>
@@ -17,48 +17,28 @@
  * 
  * DETAILS:
  * 
- * Implementation was inspired by this repo
- * https://github.com/wjakob/dset/blob/master/dset.h
- * and this paper
- * http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.8354&rep=rep1&type=pdf
- * It uses both rank and path heuristics in parallel
- * which should allow for O(\alpha S) time on both find_root and unite operations
- * 
- * Data is stored in unsigned 64 bit integers
- * The first 32 bits encode node parent
- * The last 32 bits encode node rank
- * This allows for easier compare and swap and should work slightly faster
- * 
- * E.g. if X is the stored value:
- * X & 0x00000000FFFFFFFF <- parent
- * X & 0xFFFFFFFF00000000 <- rank
- * 
- * To decode these values from u64 one should use get_parent() and get_rank()
- * 
- * I also check if id is within range and throw an exception otherwise,
- * this slows the code down a little bit but should save you some time debugging
+ * This implementation relies on path compression only
+ * and thus should achieve O(log N) time per query
  */
 struct DSU {
     const u32 NUM_THREADS;
     u32 size;
 
-    atomic_u64* data;
-    const u32 BINARY_BUCKET_SIZE = 32;
-    const u64 RANK_MASK = 0xFFFFFFFF00000000ULL;
+    atomic_u32* parent;
 
     DSU(u32 size, u32 NUM_THREADS = omp_get_max_threads()) : NUM_THREADS(NUM_THREADS), size(size) {
         if (size == 0) {
             throw std::invalid_argument("DSU size cannot be zero");
         }
 
-        data = static_cast<atomic_u64*>(operator new[] (size * sizeof(atomic_u64)));
+        parent = static_cast<atomic_u32*>(operator new[] (size * sizeof(atomic_u32)));
 
-        #pragma omp parallel for shared(data) num_threads(NUM_THREADS)
-        for (u32 i = 0; i < size; ++i) data[i] = i;
+        #pragma omp parallel for shared(parent) num_threads(NUM_THREADS)
+        for (u32 i = 0; i < size; ++i) parent[i] = i;
     }
 
     ~DSU() {
-        delete[] data;
+        delete[] parent;
     }
 
     void check_out_of_range(u32 id) {
@@ -67,12 +47,8 @@ struct DSU {
         }
     }
 
-    u32 get_parent(u32 id) const {
-        return static_cast<u32>(data[id]);
-    }
-
-    u32 get_rank(u32 id) const {
-        return static_cast<u32>(data[id] >> BINARY_BUCKET_SIZE);
+    u32 get_parent(u32 id) {
+        return parent[id];
     }
 
     /**
@@ -85,14 +61,13 @@ struct DSU {
     u32 find_root(u32 id) {
         check_out_of_range(id);
 
-        while (id != get_parent(id)) {
-            u64 value = data[id];
-            u32 grandparent = get_parent(static_cast<u32>(value));
-            u64 new_value = (value & RANK_MASK) | grandparent;
+        while (id != parent[id]) {
+            u32 value = parent[id];
+            u32 grandparent = parent[value];
 
             /* Path heuristic */
-            if (value != new_value) {
-                data[id].compare_exchange_strong(value, new_value);
+            if (value != grandparent) {
+                parent[id].compare_exchange_strong(value, grandparent);
             }
 
             id = grandparent;
@@ -122,15 +97,13 @@ struct DSU {
 
             if (id1 == id2) {
                 return true;
-            } else if (get_parent(id1) == id1) {
+            } else if (parent[id1] == id1) {
                 return false;
             }
         }
     }
 
     /**
-     * We try to hang the smaller component onto the bigger one
-     * 
      * Since it is a parallel structure, node roots may change during runtime
      * In order to account for this we do a while loop and repeat if
      * the smaller node was updated e.g. when CAS failed
@@ -146,29 +119,13 @@ struct DSU {
             /* Nodes are already in the same set */
             if (id1 == id2) return;
 
-            u32 rank1 = get_rank(id1);
-            u32 rank2 = get_rank(id2);
-
-            /* Hanging the smaller set to the bigger one, rank heuristic */
-            if (rank1 < rank2 || (rank1 == rank2 && id1 > id2)) {
-                std::swap(rank1, rank2);
+            if (id1 > id2) {
                 std::swap(id1, id2);
             }
 
-            u64 old_value = (static_cast<u64>(rank2) << BINARY_BUCKET_SIZE) | id2;
-            u64 new_value = (static_cast<u64>(rank2) << BINARY_BUCKET_SIZE) | id1;
-
             /* If CAS fails we need to repeat the same step once again */
-            if (!data[id2].compare_exchange_strong(old_value, new_value)) {
+            if (!parent[id2].compare_exchange_strong(id2, id1)) {
                 continue;
-            }
-
-            /* Updating rank */
-            if (rank1 == rank2) {
-                old_value = (static_cast<u64>(rank1) << BINARY_BUCKET_SIZE) | id1;
-                new_value = (static_cast<u64>(rank1 + 1) << BINARY_BUCKET_SIZE) | id1;
-
-                data[id1].compare_exchange_strong(old_value, new_value);
             }
 
             break;

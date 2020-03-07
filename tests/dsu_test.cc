@@ -75,7 +75,7 @@ u32 randint(u32 l, u32 r) {
 const u32 SMALL_NUM_STEPS = 1'000;
 const u32 SMALL_SIZE = 50;
 
-const u32 NUM_STEPS = 10'000;
+const u32 NUM_STEPS = 1'000;
 const u32 MAX_SIZE = 1'000;
 
 const u32 PERF_NUM_STEPS = 20;

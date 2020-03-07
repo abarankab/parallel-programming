@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
 
-#include "benchmark.h"
-#include "timer.h"
+#include "../benchmark.h"
+#include "../timer.h"
 
 struct T {
     int a, b, c;
