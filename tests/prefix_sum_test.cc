@@ -37,7 +37,7 @@ u32 randint(u32 l, u32 r) {
 }
 
 const u32 SMALL_NUM_STEPS = 10'000;
-const u32 SMALL_SIZE = 50;
+const u32 SMALL_SIZE = 100;
 
 const u32 NUM_STEPS = 1'000;
 const u32 MAX_SIZE = 100'000;
@@ -62,6 +62,7 @@ void check_correctness() {
             for (u32 i = 0; i < size; ++i) {
                 if (correct[i] != to_check[i]) {
                     std::cerr << "Prefix sum mismatch at position " << i << ":\n";
+                    std::cerr << "Expected " << correct[i] << " got " << to_check[i] << "\n";
                     std::cerr << "Array:\n";
                     for (u32 i = 0; i < size; ++i) {
                         std::cerr << arr[i] << " ";
@@ -93,7 +94,7 @@ void check_correctness() {
         u32 size = randint(1, MAX_SIZE);
         u32* arr = new u32[size];
         for (u32 i = 0; i < size; ++i) {
-            arr[i] = gen();
+            arr[i] = randint(1, 10);
         }
 
         SequentialPrefixSum correct(size, arr);
@@ -102,6 +103,7 @@ void check_correctness() {
         for (u32 i = 0; i < size; ++i) {
             if (correct[i] != to_check[i]) {
                 std::cerr << "Prefix sum mismatch at position " << i << ":\n";
+                std::cerr << "Expected " << correct[i] << " got " << to_check[i] << "\n";
                 std::cerr << "Array:\n";
                 for (u32 i = 0; i < size; ++i) {
                     std::cerr << arr[i] << " ";
