@@ -7,14 +7,13 @@
 #include "../prefix_sum.h"
 #include "../timer.h"
 
-template<typename T>
 struct SequentialPrefixSum {
     u32 size;
-    T* prefix_sum;
+    u32* prefix_sum;
 
     template<typename U>
     SequentialPrefixSum(u32 size, U* arr) : size(size) {
-        prefix_sum = static_cast<T*>(operator new[] (size * sizeof(T)));
+        prefix_sum = static_cast<u32*>(operator new[] (size * sizeof(u32)));
         prefix_sum[0] = arr[0];
 
         for (u32 i = 1; i < size; ++i) {
@@ -26,7 +25,7 @@ struct SequentialPrefixSum {
         delete[] prefix_sum;
     }
 
-    T operator[](u32 id) {
+    u32 operator[](u32 id) {
         return prefix_sum[id];
     }
 };
@@ -38,12 +37,12 @@ u32 randint(u32 l, u32 r) {
 }
 
 const u32 SMALL_NUM_STEPS = 10'000;
-const u32 SMALL_SIZE = 50;
+const u32 SMALL_SIZE = 100;
 
 const u32 NUM_STEPS = 1'000;
 const u32 MAX_SIZE = 100'000;
 
-const u32 PERF_NUM_STEPS = 20;
+const u32 PERF_NUM_STEPS = 500;
 const u32 PERF_SIZE = 10'000'000;
 
 void check_correctness() {
@@ -57,12 +56,13 @@ void check_correctness() {
                 arr[i] = randint(1, 10);
             }
 
-            SequentialPrefixSum<u32> correct(size, arr);
-            PrefixSum<u32> to_check(size, arr);
+            SequentialPrefixSum correct(size, arr);
+            PrefixSum to_check(size, arr);
 
             for (u32 i = 0; i < size; ++i) {
                 if (correct[i] != to_check[i]) {
                     std::cerr << "Prefix sum mismatch at position " << i << ":\n";
+                    std::cerr << "Expected " << correct[i] << " got " << to_check[i] << "\n";
                     std::cerr << "Array:\n";
                     for (u32 i = 0; i < size; ++i) {
                         std::cerr << arr[i] << " ";
@@ -94,15 +94,16 @@ void check_correctness() {
         u32 size = randint(1, MAX_SIZE);
         u32* arr = new u32[size];
         for (u32 i = 0; i < size; ++i) {
-            arr[i] = gen();
+            arr[i] = randint(1, 10);
         }
 
-        SequentialPrefixSum<u64> correct(size, arr);
-        PrefixSum<u64> to_check(size, arr);
+        SequentialPrefixSum correct(size, arr);
+        PrefixSum to_check(size, arr);
 
         for (u32 i = 0; i < size; ++i) {
             if (correct[i] != to_check[i]) {
                 std::cerr << "Prefix sum mismatch at position " << i << ":\n";
+                std::cerr << "Expected " << correct[i] << " got " << to_check[i] << "\n";
                 std::cerr << "Array:\n";
                 for (u32 i = 0; i < size; ++i) {
                     std::cerr << arr[i] << " ";
@@ -140,16 +141,20 @@ void check_performance() {
         }
 
         {
+            escape(&arr);
             u64 start = currentSeconds();
-            SequentialPrefixSum<u64> correct(PERF_SIZE, arr);
+            SequentialPrefixSum sequental(PERF_SIZE, arr);
             u64 finish = currentSeconds();
+            escape(&sequental);
             sequential_time += finish - start;
         }
         
         {
+            escape(&arr);
             u64 start = currentSeconds();
-            PrefixSum<u64> correct(PERF_SIZE, arr);
+            PrefixSum parallel(PERF_SIZE, arr);
             u64 finish = currentSeconds();
+            escape(&parallel);
             parallel_time += finish - start;
         }
 
