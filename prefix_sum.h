@@ -1,6 +1,7 @@
 #include <immintrin.h>
-#include <smmintrin.h>
 #include <malloc.h>
+#include <memory>
+#include <new>
 #include <omp.h>
 #include <stdexcept>
 #include <stdlib.h>
@@ -22,22 +23,14 @@ struct PrefixSum {
     u32 initial_size;
     u32* prefix_sum;
 
-    /* http://ppc.cs.aalto.fi/ch2/v3/ */
-    u32* u32_alloc(u32 size) {
-        void* ptr = 0;
-        if (posix_memalign(&ptr, sizeof(void*), size * sizeof(u32))) {
-            throw std::bad_alloc();
-        }
-        return static_cast<u32*>(ptr);
-    }
-
     PrefixSum(u32 size, u32* arr, u32 NUM_THREADS = omp_get_max_threads()) : NUM_THREADS(NUM_THREADS),
                                                                              size(size),
                                                                              initial_size(size) {
         u32 lcm = VEC_CAP * NUM_THREADS;
         size = (size + lcm - 1) / lcm * lcm;
 
-        prefix_sum = u32_alloc(size);
+        prefix_sum = static_cast<u32*>(operator new[] (size * sizeof(u32),                   // array size
+                                                       static_cast<std::align_val_t>(256)));  // alignment
         for (u32 i = initial_size; i < size; ++i) prefix_sum[i] = 0;
 
         std::vector<u32> thread_sum(NUM_THREADS);
@@ -60,18 +53,16 @@ struct PrefixSum {
                 offset += thread_sum[i];
             }
 
-            __m256i vec_offset = _mm256_set1_epi32(offset);
-            #pragma omp for schedule(static, size / NUM_THREADS / VEC_CAP)
-            for (u32 i = 0; i < size / VEC_CAP; ++i) {
-                __m256i chunk = _mm256_loadu_si256((__m256i*)(&prefix_sum[i * VEC_CAP]));
-                chunk = _mm256_add_epi32(chunk, vec_offset);
-                _mm256_storeu_si256((__m256i*)&prefix_sum[i * VEC_CAP], chunk);
+            __builtin_assume_aligned(prefix_sum, 256);
+            #pragma omp for simd schedule(static, size / NUM_THREADS)
+            for (u32 i = 0; i < initial_size; ++i) {
+                prefix_sum[i] += offset;
             }
         }
     }
 
     ~PrefixSum() {
-        free(prefix_sum);
+        delete[] prefix_sum;
     }
 
     u32 operator[](u32 id) {
