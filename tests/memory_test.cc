@@ -11,7 +11,7 @@ struct T {
 };
 
 const size_t ITER = 100'000;
-const size_t SIZE = 100'000;
+const size_t SIZE = 10'000'000;
 
 int main() {
     {

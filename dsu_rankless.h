@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "defs.h"
+#include "parallel_array.h"
 
 /**
  * INTERFACE:
@@ -22,32 +23,29 @@
  */
 struct DSU {
     const u32 NUM_THREADS;
-    u32 size;
 
-    atomic_u32* parent;
+    ParallelArray<atomic_u32> parent;
 
-    DSU(u32 size, u32 NUM_THREADS = omp_get_max_threads()) : NUM_THREADS(NUM_THREADS), size(size) {
+    DSU(u32 size, u32 NUM_THREADS = omp_get_max_threads()) : NUM_THREADS(NUM_THREADS), parent(size) {
         if (size == 0) {
             throw std::invalid_argument("DSU size cannot be zero");
         }
-
-        parent = static_cast<atomic_u32*>(operator new[] (size * sizeof(atomic_u32)));
 
         #pragma omp parallel for shared(parent) num_threads(NUM_THREADS)
         for (u32 i = 0; i < size; ++i) parent[i] = i;
     }
 
-    ~DSU() {
-        delete[] parent;
+    u32 size() const {
+        return parent.size();
     }
 
-    void check_out_of_range(u32 id) {
-        if (id >= size) {
+    void check_out_of_range(u32 id) const {
+        if (id >= size()) {
             throw std::out_of_range("Node id out of range");
         }
     }
 
-    u32 get_parent(u32 id) {
+    u32 get_parent(u32 id) const {
         return parent[id];
     }
 

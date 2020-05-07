@@ -4,6 +4,7 @@
 
 #include "../benchmark.h"
 #include "../defs.h"
+#include "../parallel_array.h"
 #include "../prefix_sum.h"
 #include "../timer.h"
 
@@ -12,7 +13,7 @@ struct SequentialPrefixSum {
     u32* prefix_sum;
 
     template<typename U>
-    SequentialPrefixSum(u32 size, U* arr) : size(size) {
+    SequentialPrefixSum(u32 size, ParallelArray<U> arr) : size(size) {
         prefix_sum = static_cast<u32*>(operator new[] (size * sizeof(u32)));
         prefix_sum[0] = arr[0];
 
@@ -51,7 +52,7 @@ void check_correctness() {
     for (u32 size = 1; size <= SMALL_SIZE; ++size) {
         std::cout << "Size " << size << "\n";
         for (u32 step = 1; step <= SMALL_NUM_STEPS; ++step) {
-            u32* arr = new u32[size];
+            ParallelArray<u32> arr(size);
             for (u32 i = 0; i < size; ++i) {
                 arr[i] = randint(1, 10);
             }
@@ -79,8 +80,6 @@ void check_correctness() {
                     exit(-1);
                 }
             }
-
-            delete[] arr;
         }
     }
     std::cout << "OK\n";
@@ -92,7 +91,7 @@ void check_correctness() {
         }
 
         u32 size = randint(1, MAX_SIZE);
-        u32* arr = new u32[size];
+        ParallelArray<u32> arr(size);
         for (u32 i = 0; i < size; ++i) {
             arr[i] = randint(1, 10);
         }
@@ -120,8 +119,6 @@ void check_correctness() {
                 exit(-1);
             }
         }
-
-        delete[] arr;
     }
     std::cout << "OK\n";
 }
@@ -135,7 +132,7 @@ void check_performance() {
             std::cout << "Step " << step / (PERF_NUM_STEPS / 10) + 1 << " of 10\n";
         }
 
-        u32* arr = new u32[PERF_SIZE];
+        ParallelArray<u32> arr(PERF_SIZE);
         for (u32 i = 0; i < PERF_SIZE; ++i) {
             arr[i] = gen();
         }
@@ -157,8 +154,6 @@ void check_performance() {
             escape(&parallel);
             parallel_time += finish - start;
         }
-
-        delete[] arr;
     }
 
     std::cout << std::fixed;
